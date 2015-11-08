@@ -62,6 +62,7 @@ XSL0401 = Class(SWalkingLandUnit) {
        
     DeathThread = function( self, overkillRatio , instigator)
         local x, y, z = self:GetVelocity()
+        local vel = self:GetVelocity()
         local bigExplosionBones = {'Torso', 'Head', 'pelvis'}
         local explosionBones = {'Right_Arm_B07', 'Right_Arm_B03',
                                 'Left_Arm_B10', 'Left_Arm_B07',
@@ -127,7 +128,7 @@ XSL0401 = Class(SWalkingLandUnit) {
         local position = self:GetPosition()
         local spiritUnit = CreateUnitHPR('XSL0402', self:GetArmy(), position[1], position[2], position[3], 0, 0, 0)
 
-        spiritUnit.MoveTable = {x, y, z}
+        spiritUnit.MoveTable = {x, y, z, vel}
         
         -- Create effects for spawning of energy being
 		for k, v in self.SpawnEffects do

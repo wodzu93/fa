@@ -625,9 +625,13 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             local aiBrain = self:GetAIBrain()
 
             -- Move
-            local x, y, z = unpack(self.MoveTable)
+            local x, y, z, vel = unpack(self.MoveTable)
+            vel = vel * 10
             local posx, posy, posz = unpack(self:GetPosition())
-            local x, z = posx + (x * 10 * bp.Lifetime), posz + (z * 10 * bp.Lifetime)
+            x = posx + (x * 10 * bp.Lifetime)
+            z = posz + (z * 10 * bp.Lifetime)
+
+            self:SetSpeedMult(vel / bp.Physics.MaxSpeed)
             self:ForkThread(self.MoveThread, x, z, posx, posy, posz)
 
             -- Weapon information
