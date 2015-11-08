@@ -607,41 +607,57 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             ChangeState( self, self.DeathState )
         end,
 
+        MoveThread = function(self, x, z)
+            while true do
+                IssueClearCommands()
+                IssueMove({self}, {x})
+                WaitTicks(Random(10, 20))
+                IssueClearCommands()
+                IssueMove({self}, {z})
+                WaitTicks(Random(10, 20))
+            end
+        end,
+        
         Main = function(self)
             local bp = self:GetBlueprint()
             local aiBrain = self:GetAIBrain()
 
-            --Queue up random moves
-            local x,y,z = unpack(self:GetPosition())
-            for i=1, 100 do
-                IssueMove({self}, {x + Random(-bp.MaxMoveRange, bp.MaxMoveRange), y, z + Random(-bp.MaxMoveRange, bp.MaxMoveRange)})
-            end
+            -- Move
+            local x, y, z = unpack(chicken:GetVelocity())
+            local posx, posy, posz = unpack(self:GetPosition())
+            x, z = x * 10 * bp.Lifetime, z * 10 * bp.Lifetime
+            if x > 0 then x = x + posx else x = x - posx end
+            if z > 0 then z = z + posz else z = z - posz end
+            self:ForkThread(self.MoveThread, x, z)
 
             -- weapon information
             local weaponMaxRange = bp.Weapon[1].MaxRadius
             local weaponMinRange = bp.Weapon[1].MinRadius or 0
             local beamLifetime = bp.Weapon[1].BeamLifetime or 1
 
-            local reaquireTime = bp.Weapon[1].RequireTime or 0.5
-
             local weapon = self:GetWeapon(1)
 
             self:ForkThread(self.LifeThread)
 
             while true do
+                local reaquireTime = Random(0.3, 0.9)
                 local location = self:GetPosition()
-                local targets = aiBrain:GetUnitsAroundPoint( categories.LAND - categories.UNTARGETABLE, location, weaponMaxRange )
+                local targets = aiBrain:GetUnitsAroundPoint( categories.ALLUNITS - categories.UNTARGETABLE, location, weaponMaxRange, 'Enemy' )
                 local filteredUnits = {}
                 for k,v in targets do
-                    if VDist3( location, v:GetPosition() ) >= weaponMinRange and v ~= self then
+                    if VDist3( location, v:GetPosition() ) >= weaponMinRange and v ~= self and v:GetCurrentLayer() == 'Land' or v:GetCurrentLayer() == 'Water' then
                         table.insert( filteredUnits, v )
                     end
                 end
                 local target = filteredUnits[Random(1, table.getn(filteredUnits))]
-                if target then
+                
+                local event = Random(1, 4)
+                if event ~= 4 and target then
+                    wep:SetDamageRadius(0)
                     weapon:SetTargetEntity(target)
                 else
-                    weapon:SetTargetGround( { location[1] + Random(-20, 20), location[2], location[3] + Random(-20, 20) } )
+                    wep:SetDamageRadius(2)
+                    weapon:SetTargetGround( { location[1] + Random(-weaponMaxRange, weaponMaxRange), location[2], location[3] + Random(-weaponMaxRange, weaponMaxRange) } )
                 end
                 -- Wait a tick to let the target update awesomely.
                 WaitSeconds(.1)
@@ -651,25 +667,7 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
                 WaitSeconds(beamLifetime)
                 DefaultBeamWeapon.PlayFxBeamEnd(weapon,weapon.Beams[1].Beam)
                 WaitSeconds(reaquireTime)
-                --self:ComputeWaitTime()
             end
-            -- ChangeState( self, self.DeathState )
-        end,
-
-        ComputeWaitTime = function(self)
-            local timeLeft = self:GetBlueprint().Lifetime - self.timeAlive
-
-            local maxWait = 75
-            if timeLeft < 7.5 and timeLeft > 2.5 then
-                maxWait = timeLeft * 10
-            end
-            local waitTime = timeLeft
-            if timeLeft > 2.5 then
-                waitTime = Random(5,maxWait)
-            end
-
-            self.timeAlive = self.timeAlive + (waitTime * .1)
-            WaitSeconds(waitTime * .1)
         end,
     },
 
