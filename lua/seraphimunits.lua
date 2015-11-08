@@ -591,7 +591,7 @@ SRadarJammerUnit = Class(RadarJammerUnit) {}
 --  Seraphim energy ball units
 --------------------------------------------------------------
 SEnergyBallUnit = Class(SHoverLandUnit) {
-    timeAlive = 0,
+    MoveTable = {},
 
     OnCreate = function(self)
         SHoverLandUnit.OnCreate(self)
@@ -603,18 +603,20 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
 
     KillingState = State {
         LifeThread = function(self)
-            WaitSeconds( self:GetBlueprint().Lifetime)
-            ChangeState( self, self.DeathState )
+            WaitSeconds(self:GetBlueprint().Lifetime)
+            ChangeState(self, self.DeathState)
         end,
 
-        MoveThread = function(self, x, z)
+        MoveThread = function(self, x, z, posx, posy, posz)
             while true do
-                IssueClearCommands()
-                IssueMove({self}, {x})
-                WaitTicks(Random(10, 20))
-                IssueClearCommands()
-                IssueMove({self}, {z})
-                WaitTicks(Random(10, 20))
+                IssueClearCommands({self})
+                IssueMove({self}, {x, posy, posz})
+                local wait = Random(10, 30)
+                WaitTicks(wait)
+                IssueClearCommands({self})
+                IssueMove({self}, {posx, posy, z})
+                wait = Random(10, 30)
+                WaitTicks(wait)
             end
         end,
         
@@ -623,14 +625,12 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             local aiBrain = self:GetAIBrain()
 
             -- Move
-            local x, y, z = unpack(chicken:GetVelocity())
+            local x, y, z = unpack(self.MoveTable)
             local posx, posy, posz = unpack(self:GetPosition())
-            x, z = x * 10 * bp.Lifetime, z * 10 * bp.Lifetime
-            if x > 0 then x = x + posx else x = x - posx end
-            if z > 0 then z = z + posz else z = z - posz end
-            self:ForkThread(self.MoveThread, x, z)
+            local x, z = posx + (x * 10 * bp.Lifetime), posz + (z * 10 * bp.Lifetime)
+            self:ForkThread(self.MoveThread, x, z, posx, posy, posz)
 
-            -- weapon information
+            -- Weapon information
             local weaponMaxRange = bp.Weapon[1].MaxRadius
             local weaponMinRange = bp.Weapon[1].MinRadius or 0
             local beamLifetime = bp.Weapon[1].BeamLifetime or 1
@@ -640,7 +640,7 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             self:ForkThread(self.LifeThread)
 
             while true do
-                local reaquireTime = Random(0.3, 0.9)
+                local reaquireTime = Random(3, 12)
                 local location = self:GetPosition()
                 local targets = aiBrain:GetUnitsAroundPoint( categories.ALLUNITS - categories.UNTARGETABLE, location, weaponMaxRange, 'Enemy' )
                 local filteredUnits = {}
@@ -653,20 +653,17 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
                 
                 local event = Random(1, 4)
                 if event ~= 4 and target then
-                    wep:SetDamageRadius(0)
                     weapon:SetTargetEntity(target)
                 else
-                    wep:SetDamageRadius(2)
-                    weapon:SetTargetGround( { location[1] + Random(-weaponMaxRange, weaponMaxRange), location[2], location[3] + Random(-weaponMaxRange, weaponMaxRange) } )
+                    weapon:SetTargetGround({location[1] + Random(-weaponMaxRange, weaponMaxRange), location[2], location[3] + Random(-weaponMaxRange, weaponMaxRange)})
                 end
                 -- Wait a tick to let the target update awesomely.
                 WaitSeconds(.1)
-                self.timeAlive = self.timeAlive + .1
                 weapon:FireWeapon()
 
                 WaitSeconds(beamLifetime)
-                DefaultBeamWeapon.PlayFxBeamEnd(weapon,weapon.Beams[1].Beam)
-                WaitSeconds(reaquireTime)
+                DefaultBeamWeapon.PlayFxBeamEnd(weapon, weapon.Beams[1].Beam)
+                WaitTicks(reaquireTime)
             end
         end,
     },

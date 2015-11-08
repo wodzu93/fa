@@ -58,13 +58,10 @@ XSL0401 = Class(SWalkingLandUnit) {
     StartBeingBuiltEffects = function(self, builder, layer)
         SWalkingLandUnit.StartBeingBuiltEffects(self, builder, layer)
         self:ForkThread(EffectUtil.CreateSeraphimExperimentalBuildBaseThread, builder, self.OnBeingBuiltEffectsBag)
-    end,
-
-    OnAnimCollision = function(self, bone, x, y, z)
-        SWalkingLandUnit.OnAnimCollision(self, bone, x, y, z)
-    end,
-
-    DeathThread = function(self, overkillRatio , instigator)
+    end,  
+       
+    DeathThread = function( self, overkillRatio , instigator)
+        local x, y, z = self:GetVelocity()
         local bigExplosionBones = {'Torso', 'Head', 'pelvis'}
         local explosionBones = {'Right_Arm_B07', 'Right_Arm_B03',
                                 'Left_Arm_B10', 'Left_Arm_B07',
@@ -130,10 +127,15 @@ XSL0401 = Class(SWalkingLandUnit) {
         local position = self:GetPosition()
         local spiritUnit = CreateUnitHPR('XSL0402', self:GetArmy(), position[1], position[2], position[3], 0, 0, 0)
 
+        spiritUnit.MoveTable = {x, y, z}
+        
         -- Create effects for spawning of energy being
-        for k, v in self.SpawnEffects do
-            CreateAttachedEmitter(spiritUnit, -1, self:GetArmy(), v)
-        end
+		for k, v in self.SpawnEffects do
+			CreateAttachedEmitter(spiritUnit, -1, self:GetArmy(), v)
+		end	
+        
+        self:PlayUnitSound('Destroyed')
+        self:Destroy()
     end,
 }
 
