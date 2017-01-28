@@ -61,8 +61,6 @@ XSL0401 = Class(SWalkingLandUnit) {
     end,  
        
     DeathThread = function( self, overkillRatio , instigator)
-        local x, y, z = self:GetVelocity()
-        local vel = self:GetVelocity()
         local bigExplosionBones = {'Torso', 'Head', 'pelvis'}
         local explosionBones = {'Right_Arm_B07', 'Right_Arm_B03',
                                 'Left_Arm_B10', 'Left_Arm_B07',
@@ -119,6 +117,8 @@ XSL0401 = Class(SWalkingLandUnit) {
     end,
 
     OnDestroy = function(self)
+        local x, y, z = self:GetVelocity()
+        local vel = self:GetVelocity()
         SWalkingLandUnit.OnDestroy(self)
 
         -- Don't make the energy being if not built, or if this is a unit transfer

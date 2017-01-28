@@ -598,7 +598,7 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
         self:SetCanTakeDamage(false)
         self:SetCanBeKilled(false)
         self:PlayUnitSound('Spawn')
-        ChangeState( self, self.KillingState )
+        ChangeState(self, self.KillingState)
     end,
 
     KillingState = State {
@@ -607,19 +607,20 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             ChangeState(self, self.DeathState)
         end,
 
-        MoveThread = function(self, x, z, posx, posy, posz)
+        MoveThread = function(self, x, z)
             while true do
+                local posx, posy, posz = unpack(self:GetPosition())
                 IssueClearCommands({self})
                 IssueMove({self}, {x, posy, posz})
-                local wait = Random(10, 30)
+                local wait = Random(5, 20)
                 WaitTicks(wait)
                 IssueClearCommands({self})
                 IssueMove({self}, {posx, posy, z})
-                wait = Random(10, 30)
+                wait = Random(5, 20)
                 WaitTicks(wait)
             end
         end,
-        
+
         Main = function(self)
             local bp = self:GetBlueprint()
             local aiBrain = self:GetAIBrain()
@@ -628,11 +629,13 @@ SEnergyBallUnit = Class(SHoverLandUnit) {
             local x, y, z, vel = unpack(self.MoveTable)
             vel = vel * 10
             local posx, posy, posz = unpack(self:GetPosition())
+
+            -- Find the destination position to aim for had the bot stayed on its path
             x = posx + (x * 10 * bp.Lifetime)
             z = posz + (z * 10 * bp.Lifetime)
 
-            self:SetSpeedMult(vel / bp.Physics.MaxSpeed)
-            self:ForkThread(self.MoveThread, x, z, posx, posy, posz)
+            self:SetSpeedMult(0.8)
+            self:ForkThread(self.MoveThread, x, z)
 
             -- Weapon information
             local weaponMaxRange = bp.Weapon[1].MaxRadius
